@@ -953,6 +953,7 @@ const struct proto_ops inet_dgram_ops = {
 };
 EXPORT_SYMBOL(inet_dgram_ops);
 
+#ifdef CONFIG_INET_RAW
 /*
  * For SOCK_RAW sockets; should be the same as inet_dgram_ops but without
  * udp_poll
@@ -982,6 +983,7 @@ static const struct proto_ops inet_sockraw_ops = {
 	.compat_ioctl	   = inet_compat_ioctl,
 #endif
 };
+#endif
 
 static const struct net_proto_family inet_family_ops = {
 	.family = PF_INET,
@@ -1020,6 +1022,7 @@ static struct inet_protosw inetsw_array[] =
        },
 #endif
 
+#ifdef CONFIG_INET_RAW
        {
 	       .type =       SOCK_RAW,
 	       .protocol =   IPPROTO_IP,	/* wild card */
@@ -1027,6 +1030,7 @@ static struct inet_protosw inetsw_array[] =
 	       .ops =        &inet_sockraw_ops,
 	       .flags =      INET_PROTOSW_REUSE,
        }
+#endif
 };
 
 #define INETSW_ARRAY_LEN ARRAY_SIZE(inetsw_array)
@@ -1721,9 +1725,11 @@ static int __init inet_init(void)
 	if (rc)
 		goto out_unregister_tcp_proto;
 
+#ifdef CONFIG_INET_RAW
 	rc = proto_register(&raw_prot, 1);
 	if (rc)
 		goto out_unregister_udp_proto;
+#endif
 
 #ifdef CONFIG_IP_PING
 	rc = proto_register(&ping_prot, 1);
@@ -1822,8 +1828,10 @@ static int __init inet_init(void)
 out:
 	return rc;
 out_unregister_raw_proto:
+#ifdef CONFIG_INET_RAW
 	proto_unregister(&raw_prot);
 out_unregister_udp_proto:
+#endif
 	proto_unregister(&udp_prot);
 out_unregister_tcp_proto:
 	proto_unregister(&tcp_prot);
