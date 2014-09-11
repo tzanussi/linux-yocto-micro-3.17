@@ -26,27 +26,21 @@
 #include <linux/pci.h>
 #include "stmmac.h"
 
-static struct plat_stmmacenet_data plat_dat;
-static struct stmmac_mdio_bus_data mdio_data;
-static struct stmmac_dma_cfg dma_cfg;
-
-static void stmmac_default_data(void)
+static void stmmac_default_data(struct plat_stmmacenet_data *plat_dat,
+				struct pci_dev *pdev)
 {
-	memset(&plat_dat, 0, sizeof(struct plat_stmmacenet_data));
-	plat_dat.bus_id = 1;
-	plat_dat.phy_addr = 0;
-	plat_dat.interface = PHY_INTERFACE_MODE_GMII;
-	plat_dat.clk_csr = 2;	/* clk_csr_i = 20-35MHz & MDC = clk_csr_i/16 */
-	plat_dat.has_gmac = 1;
-	plat_dat.force_sf_dma_mode = 1;
+	plat_dat->bus_id = PCI_DEVID(pdev->bus->number, pdev->devfn);
+	plat_dat->phy_addr = 0;
+	plat_dat->interface = PHY_INTERFACE_MODE_GMII;
+	plat_dat->clk_csr = 2;	/* clk_csr_i = 20-35MHz & MDC = clk_csr_i/16 */
+	plat_dat->has_gmac = 1;
+	plat_dat->force_sf_dma_mode = 1;
 
-	mdio_data.phy_reset = NULL;
-	mdio_data.phy_mask = 0;
-	plat_dat.mdio_bus_data = &mdio_data;
+	plat_dat->mdio_bus_data->phy_reset = NULL;
+	plat_dat->mdio_bus_data->phy_mask = 0;
 
-	dma_cfg.pbl = 32;
-	dma_cfg.burst_len = DMA_AXI_BLEN_256;
-	plat_dat.dma_cfg = &dma_cfg;
+	plat_dat->dma_cfg->pbl = 32;
+	plat_dat->dma_cfg->burst_len = DMA_AXI_BLEN_256;
 }
 
 /**
@@ -67,6 +61,7 @@ static int stmmac_pci_probe(struct pci_dev *pdev,
 	int ret = 0;
 	void __iomem *addr = NULL;
 	struct stmmac_priv *priv = NULL;
+	struct plat_stmmacenet_data *plat_dat;
 	int i;
 
 	/* Enable pci device */
@@ -97,9 +92,31 @@ static int stmmac_pci_probe(struct pci_dev *pdev,
 	}
 	pci_set_master(pdev);
 
-	stmmac_default_data();
+	plat_dat = devm_kzalloc(&pdev->dev, sizeof(*plat_dat), GFP_KERNEL);
+	if (!plat_dat) {
+		ret = -ENOMEM;
+		goto err_out;
+	}
 
-	priv = stmmac_dvr_probe(&(pdev->dev), &plat_dat, addr);
+	plat_dat->mdio_bus_data = devm_kzalloc(&pdev->dev,
+					       sizeof(*plat_dat->mdio_bus_data),
+					       GFP_KERNEL);
+	if (!plat_dat->mdio_bus_data) {
+		ret = -ENOMEM;
+		goto err_out;
+	}
+
+	plat_dat->dma_cfg = devm_kzalloc(&pdev->dev,
+					 sizeof(*plat_dat->dma_cfg),
+					 GFP_KERNEL);
+	if (!plat_dat->dma_cfg) {
+		ret = -ENOMEM;
+		goto err_out;
+	}
+
+	stmmac_default_data(plat_dat, pdev);
+
+	priv = stmmac_dvr_probe(&pdev->dev, plat_dat, addr);
 	if (IS_ERR(priv)) {
 		pr_err("%s: main driver probe failed", __func__);
 		ret = PTR_ERR(priv);
