@@ -26,21 +26,63 @@
 #include <linux/pci.h>
 #include "stmmac.h"
 
-static void stmmac_default_data(struct plat_stmmacenet_data *plat_dat,
-				struct pci_dev *pdev)
+enum chip {
+	CHIP_STMICRO = 0,
+};
+
+/* A struct for platform specific information which will be
+ * used in stmmac_default_data function for initialization
+ */
+struct platform_data {
+	int phy_addr;
+	int interface;
+	int clk_csr;
+	int has_gmac;
+	int force_sf_dma_mode;
+	int multicast_filter_bins;
+	int unicast_filter_entries;
+	int (*phy_reset)(void *priv);
+	unsigned int phy_mask;
+	int pbl;
+	int burst_len;
+};
+
+static struct platform_data platform_info[] = {
+	[CHIP_STMICRO] = {
+		.phy_addr = 0,
+		.interface = PHY_INTERFACE_MODE_GMII,
+		.clk_csr = 2,
+		.has_gmac = 1,
+		.force_sf_dma_mode = 1,
+		.multicast_filter_bins = HASH_TABLE_SIZE,
+		.unicast_filter_entries = 1,
+		.phy_reset = NULL,
+		.phy_mask = 0,
+		.pbl = 32,
+		.burst_len = DMA_AXI_BLEN_256,
+	},
+};
+
+static void stmmac_default_data(struct plat_stmmacenet_data *plat,
+				int chip_id, struct pci_dev *pdev)
 {
-	plat_dat->bus_id = PCI_DEVID(pdev->bus->number, pdev->devfn);
-	plat_dat->phy_addr = 0;
-	plat_dat->interface = PHY_INTERFACE_MODE_GMII;
-	plat_dat->clk_csr = 2;	/* clk_csr_i = 20-35MHz & MDC = clk_csr_i/16 */
-	plat_dat->has_gmac = 1;
-	plat_dat->force_sf_dma_mode = 1;
+	struct platform_data *chip_plat_dat = &platform_info[chip_id];
 
-	plat_dat->mdio_bus_data->phy_reset = NULL;
-	plat_dat->mdio_bus_data->phy_mask = 0;
+	plat->bus_id = PCI_DEVID(pdev->bus->number, pdev->devfn);
+	plat->phy_addr = chip_plat_dat->phy_addr;
+	plat->interface = chip_plat_dat->interface;
+	/* clk_csr_i = 20-35MHz & MDC = clk_csr_i/16 */
+	plat->clk_csr = chip_plat_dat->clk_csr;
+	plat->has_gmac = chip_plat_dat->has_gmac;
+	plat->force_sf_dma_mode = chip_plat_dat->force_sf_dma_mode;
+	plat->multicast_filter_bins = chip_plat_dat->multicast_filter_bins;
+	plat->unicast_filter_entries = chip_plat_dat->unicast_filter_entries;
 
-	plat_dat->dma_cfg->pbl = 32;
-	plat_dat->dma_cfg->burst_len = DMA_AXI_BLEN_256;
+	plat->mdio_bus_data->phy_reset = chip_plat_dat->phy_reset;
+	plat->mdio_bus_data->phy_mask = chip_plat_dat->phy_mask;
+
+	plat->dma_cfg->pbl = chip_plat_dat->pbl;
+	plat->dma_cfg->burst_len = chip_plat_dat->burst_len;
 }
 
 /**
@@ -114,7 +156,7 @@ static int stmmac_pci_probe(struct pci_dev *pdev,
 		goto err_out;
 	}
 
-	stmmac_default_data(plat_dat, pdev);
+	stmmac_default_data(plat_dat, id->driver_data, pdev);
 
 	priv = stmmac_dvr_probe(&pdev->dev, plat_dat, addr);
 	if (IS_ERR(priv)) {
@@ -188,8 +230,9 @@ static int stmmac_pci_resume(struct pci_dev *pdev)
 #define STMMAC_DEVICE_ID 0x1108
 
 static const struct pci_device_id stmmac_id_table[] = {
-	{PCI_DEVICE(STMMAC_VENDOR_ID, STMMAC_DEVICE_ID)},
-	{PCI_DEVICE(PCI_VENDOR_ID_STMICRO, PCI_DEVICE_ID_STMICRO_MAC)},
+	{PCI_DEVICE(STMMAC_VENDOR_ID, STMMAC_DEVICE_ID), PCI_ANY_ID,
+			PCI_ANY_ID, CHIP_STMICRO},
+	{PCI_VDEVICE(STMICRO, PCI_DEVICE_ID_STMICRO_MAC), CHIP_STMICRO},
 	{}
 };
 
