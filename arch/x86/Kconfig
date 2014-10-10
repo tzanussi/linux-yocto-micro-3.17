@@ -480,6 +480,20 @@ config X86_INTEL_LPSS
 	  things like clock tree (common clock framework) and pincontrol
 	  which are needed by the LPSS peripheral drivers.
 
+config X86_INTEL_QUARK_X1000
+	bool "Intel Quark X1000 SOC support"
+	depends on M586TSC
+	select ARCH_REQUIRE_GPIOLIB
+	select I2C
+	select IOSF_MBI
+	---help---
+	  Quark X1000 SOC support . This option enables probing for various
+	  PCI-IDs of several on-chip devices provided by the X1000.
+	  If you are building for a QUARK-based platform, please select
+	  Y here;
+
+	  Intel Quark SoC is x86 32-bit processor.
+
 config X86_RDC321X
 	bool "RDC R-321x SoC"
 	depends on X86_32
