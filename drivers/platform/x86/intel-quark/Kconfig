@@ -1,0 +1,10 @@
+config INTEL_QRK_ESRAM
+	bool "eSRAM - embedded SRAM driver for Intel Quark platform"
+	depends on X86_INTEL_QUARK_X1000 && PM && IOSF_MBI
+	select KALLSYMS
+	select CRC16
+	help
+	  Say Y here to enable eSRAM overlay and software-initiated ECC
+	  updates. eSRAM overlaying allows for code/data structures to be
+	  mapped into eSRAM thus providing far faster access to code/data
+	  than ordinary DRAM. Slower than cache RAM faster than DRAM.
