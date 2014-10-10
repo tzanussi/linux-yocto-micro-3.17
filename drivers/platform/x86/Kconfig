@@ -723,6 +723,10 @@ config INTEL_MFLD_THERMAL
          Say Y here to enable thermal driver support for the  Intel Medfield
          platform.
 
+if X86_INTEL_QUARK_X1000
+source "drivers/platform/x86/intel-quark/Kconfig"
+endif
+
 config INTEL_IPS
 	tristate "Intel Intelligent Power Sharing"
 	depends on ACPI
