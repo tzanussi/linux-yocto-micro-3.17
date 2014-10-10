@@ -1632,6 +1632,19 @@ static int pci_eg20t_init(struct pci_dev *dev)
 #endif
 }
 
+/*
+ * UART parameters for Intel Quark setup
+ */
+static int pci_intel_qrk_setup(struct serial_private *priv,
+               const struct pciserial_board *board,
+               struct uart_8250_port *port, int idx)
+{
+	unsigned int bar, offset = board->first_offset;
+	bar = FL_GET_BASE(board->flags);
+
+	return setup_port(priv, port, bar, offset, board->reg_shift);
+}
+
 static int
 pci_xr17c154_setup(struct serial_private *priv,
 		  const struct pciserial_board *board,
@@ -1773,6 +1786,7 @@ pci_wch_ch353_setup(struct serial_private *priv,
 #define PCI_DEVICE_ID_OXSEMI_16PCI958	0x9538
 #define PCIE_DEVICE_ID_NEO_2_OX_IBM	0x00F6
 #define PCI_DEVICE_ID_PLX_CRONYX_OMEGA	0xc001
+#define PCI_DEVICE_ID_INTEL_QRK_UART1	0x0936
 #define PCI_DEVICE_ID_INTEL_PATSBURG_KT 0x1d3d
 #define PCI_VENDOR_ID_WCH		0x4348
 #define PCI_DEVICE_ID_WCH_CH352_2S	0x3253
@@ -1897,6 +1911,13 @@ static struct pci_serial_quirk pci_serial_quirks[] __refdata = {
 		.subvendor	= PCI_ANY_ID,
 		.subdevice	= PCI_ANY_ID,
 		.setup		= byt_serial_setup,
+	},
+	{
+		.vendor		= PCI_VENDOR_ID_INTEL,
+		.device		= PCI_DEVICE_ID_INTEL_QRK_UART1,
+		.subvendor	= PCI_ANY_ID,
+		.subdevice	= PCI_ANY_ID,
+		.setup		= pci_intel_qrk_setup,
 	},
 	/*
 	 * ITE
@@ -2716,6 +2737,7 @@ enum pci_board_num_t {
 	pbn_oxsemi_2_4000000,
 	pbn_oxsemi_4_4000000,
 	pbn_oxsemi_8_4000000,
+	pbn_intel_qrk,
 	pbn_intel_i960,
 	pbn_sgi_ioc3,
 	pbn_computone_4,
@@ -3291,6 +3313,12 @@ static struct pciserial_board pci_boards[] = {
 		.base_baud	= 4000000,
 		.uart_offset	= 0x200,
 		.first_offset	= 0x1000,
+	},
+	[pbn_intel_qrk] = {
+		.flags		= FL_BASE0,
+		.num_ports	= 1,
+		.base_baud	= 2764800,
+		.reg_shift	= 2,
 	},
 
 
@@ -4683,6 +4711,10 @@ static struct pci_device_id serial_pci_tbl[] = {
 	{	PCI_VENDOR_ID_MORETON, PCI_DEVICE_ID_RASTEL_2PORT,
 		PCI_ANY_ID, PCI_ANY_ID, 0, 0,
 		pbn_b2_bt_2_115200 },
+
+	{	 PCI_VENDOR_ID_INTEL, PCI_DEVICE_ID_INTEL_QRK_UART1,
+		PCI_ANY_ID, PCI_ANY_ID, 0, 0,
+		pbn_intel_qrk },
 
 	/*
 	 * EKF addition for i960 Boards form EKF with serial port
