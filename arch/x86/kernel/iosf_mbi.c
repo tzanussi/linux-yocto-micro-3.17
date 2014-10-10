@@ -22,7 +22,7 @@
 #include <linux/init.h>
 #include <linux/spinlock.h>
 #include <linux/pci.h>
-
+#include <linux/platform_device.h>
 #include <asm/iosf_mbi.h>
 
 #define PCI_DEVICE_ID_BAYTRAIL		0x0F00
@@ -187,10 +187,17 @@ bool iosf_mbi_available(void)
 }
 EXPORT_SYMBOL(iosf_mbi_available);
 
+static struct platform_device pltdev [] = {
+       {
+               .name = "intel-qrk-esram",
+       },
+};
+
 static int iosf_mbi_probe(struct pci_dev *pdev,
 			  const struct pci_device_id *unused)
 {
 	int ret;
+	int i;
 
 	ret = pci_enable_device(pdev);
 	if (ret < 0) {
@@ -199,6 +206,15 @@ static int iosf_mbi_probe(struct pci_dev *pdev,
 	}
 
 	mbi_pdev = pci_dev_get(pdev);
+
+	/* Register side-band sub-ordinate drivers */
+	for (i = 0; i < sizeof(pltdev)/sizeof(struct platform_device); i++){
+		/* Register side-band sub-ordinate drivers */
+		platform_device_register(&pltdev[i]);
+	}
+
+	pr_info("Intel Quark side-band driver registered\n");
+
 	return 0;
 }
 
