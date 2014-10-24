@@ -8,3 +8,12 @@ config INTEL_QRK_ESRAM
 	  updates. eSRAM overlaying allows for code/data structures to be
 	  mapped into eSRAM thus providing far faster access to code/data
 	  than ordinary DRAM. Slower than cache RAM faster than DRAM.
+
+config INTEL_QRK_IMR
+	bool "IMR - Isolated Memory Region for Intel Quark platform"
+	depends on X86_INTEL_QUARK_X1000 && IOSF_MBI
+	help
+	 Say Y here to enable IMR feature available in Intel Quark X1000.
+	 There is a total of 8 IMR zone can be used by user in the SoC.
+	 By default, the kernel runtime memory region from _text to
+	 __init_data is locked-down to ensure integrity.
